@@ -1,6 +1,6 @@
-# SwiftFlow — Open-Source Minimalist Task & Project Manager (Flutter)
+# Task Minimal — Open-Source Minimalist Task & Project Manager (Flutter)
 
-SwiftFlow is an **open-source task and project management app** built with **Flutter**.  
+Task Minimal is an **open-source task and project management app** built with **Flutter**.  
 It is designed for developers and professionals who need a **fast, distraction-free productivity tool** without the complexity of traditional project management software.
 
 The app focuses on **clarity, speed, and low cognitive load**, making it suitable for managing everything from simple daily tasks to large, structured projects.
@@ -9,20 +9,20 @@ The app focuses on **clarity, speed, and low cognitive load**, making it suitabl
 
 ---
 
-## What Is SwiftFlow?
+## What Is Task Minimal?
 
-SwiftFlow is a **minimalist task manager and project management application** that removes unnecessary features commonly found in tools like Notion, Jira, or Trello.
+Task Minimal is a **minimalist task manager and project management application** that removes unnecessary features commonly found in tools like Notion, Jira, or Trello.
 
-Instead of complex configuration and overloaded interfaces, SwiftFlow provides:
+Instead of complex configuration and overloaded interfaces, Task Minimal provides:
 - clear task structures
 - smooth navigation
 - a focused workflow that helps users finish work, not manage software
 
 ---
 
-## Who Is SwiftFlow For?
+## Who Is Task Minimal For?
 
-SwiftFlow is designed for:
+Task Minimal is designed for:
 
 - **Developers** who want a lightweight task manager
 - **Freelancers** managing multiple projects without heavy PM tools
@@ -56,7 +56,7 @@ Most productivity and project management apps suffer from one of two problems:
 1. They are too simple to scale
 2. They become bloated and hard to use
 
-SwiftFlow follows a different approach:
+Task Minimal follows a different approach:
 > **Fewer features, better execution.**
 
 Every part of the interface exists to support task completion, not configuration.
@@ -65,7 +65,7 @@ Every part of the interface exists to support task completion, not configuration
 
 ## Technology Stack
 
-SwiftFlow is developed as an **open-source Flutter application**, using:
+Task Minimal is developed as an **open-source Flutter application**, using:
 
 - **Dart**
 - **Flutter Framework**
@@ -82,7 +82,7 @@ This allows:
 ## Getting Started
 
 ```bash
-git clone https://github.com/Dima011099/swiftflow-app.git
-cd swiftflow-app
+git clone https://github.com/Dima011099/Task Minimal-app.git
+cd Task Minimal-app
 flutter pub get
 flutter run

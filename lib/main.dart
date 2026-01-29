@@ -18,11 +18,11 @@ void main() async {
     databaseFactory = databaseFactoryFfiWeb;
   }
 
-  runApp(const SwiftFlowApp());
+  runApp(const TaskMininal());
 }
 
-class SwiftFlowApp extends StatelessWidget {
-  const SwiftFlowApp({super.key});
+class TaskMininal extends StatelessWidget {
+  const TaskMininal({super.key});
 
   @override
   Widget build(BuildContext context) {

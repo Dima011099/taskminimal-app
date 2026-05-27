@@ -7,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:swift_flow/main.dart';
+import 'package:task_minimal/main.dart';
 
 
 void main() {

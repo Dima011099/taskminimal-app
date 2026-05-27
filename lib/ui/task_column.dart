@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swift_flow/ui/task_list.dart';
+import 'package:task_minimal/ui/task_list.dart';
 import '../models/task.dart';
 
 class TaskColumn extends StatelessWidget {

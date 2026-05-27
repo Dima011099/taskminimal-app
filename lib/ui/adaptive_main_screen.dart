@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:swift_flow/controllers/task_controller.dart';
-import 'package:swift_flow/models/task.dart';
-import 'package:swift_flow/ui/project_screen.dart';
-import 'package:swift_flow/ui/widgets/empty_task_widget.dart';
-import 'package:swift_flow/ui/widgets/project_list.dart';
+import 'package:task_minimal/controllers/task_controller.dart';
+import 'package:task_minimal/models/task.dart';
+import 'package:task_minimal/ui/project_screen.dart';
+import 'package:task_minimal/ui/widgets/empty_task_widget.dart';
+import 'package:task_minimal/ui/widgets/minimal_tab_bar.dart';
+import 'package:task_minimal/ui/widgets/project_list.dart';
 
 import '../database_helper.dart';
 
@@ -35,27 +36,79 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
       appBar: AppBar(
         toolbarHeight: 72,
         leadingWidth: 72,
-        actionsPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-        title: const Text('Swift Flow - Projects'), 
+        actionsPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        title:       Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12.0), // Отступ 24px строго по вашей сетке
+    child: Row(
+      children: [
+        // ====== ТОТ САМЫЙ МИНИ-ЛОГОТИП ======
+        SizedBox(
+          width: 30,
+          height: 26,
+          child: Stack(
+            children: [
+              // Первый кубик (slateBase — антрацит)
+              Positioned(
+                left: 0,
+                top: 0,
+                child: Container(
+                  width: 13,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F141C),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ),
+              // Второй кубик (brandBlue — синий)
+              Positioned(
+                left: 16,
+                top: 0,
+                child: Container(
+                  width: 13,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ),
+              // Третий кубик (вертикальный антрацит)
+              Positioned(
+                left: 12,
+                top: 9,
+                child: Container(
+                  width: 5,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F141C),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6), // Идеальный отступ между логотипом и текстом (6px из SVG)
+        
+        // ====== ОБНОВЛЕННЫЙ ТЕКСТ ======
+        const Text(
+          'Minimal',
+          style: TextStyle(
+            fontFamily: '.SF Pro Text', // Системный шрифт Apple
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF0F141C), // Фирменный глубокий антрацит
+            letterSpacing: -0.5, // Отрицательный трекинг из вашей дизайн-системы
+          ),
+        ),
+      ],
+    ),
+  ),
         backgroundColor: Colors.white,
          actions: [
-    IconButton(
-      icon: const Icon(Icons.add), 
-      onPressed: () {
-        _addProject();
-      },
-    ),
-      IconButton(
-      icon: const Icon(Icons.file_upload), 
-      onPressed: () {
-        controller.importAsNewProject('Import Project');
-      },
-    ),
-    IconButton(
-      icon: const Icon(Icons.person_sharp), 
-      onPressed: () {
-      },
-    ),
+   
+
    IconButton(
     icon: const Icon(Icons.settings),
     onPressed: () {
@@ -114,6 +167,13 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
           }
         },
       ),
+        bottomNavigationBar: new MinimalTabBar(
+    onProfilePressed: () => print("Профиль нажат"),
+    onFolderPressed: () => print("Папка нажата"),
+    onSyncPressed: () => print("Синхронизация"),
+    onExportPressed: () => controller.importAsNewProject('Import Project'),
+    onAddPressed: () => _addProject(),
+  ),
     );
   }
 
@@ -137,4 +197,6 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
           ),
         );
   }
+
+  
 }

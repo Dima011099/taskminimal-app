@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
-import 'package:swift_flow/ui/adaptive_main_screen.dart';
+import 'package:task_minimal/ui/adaptive_main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

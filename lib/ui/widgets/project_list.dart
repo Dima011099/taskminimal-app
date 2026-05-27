@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:swift_flow/controllers/task_controller.dart';
-import 'package:swift_flow/models/task.dart';
-import 'package:swift_flow/ui/widgets/base_project_tile.dart';
+import 'package:task_minimal/controllers/task_controller.dart';
+import 'package:task_minimal/models/task.dart';
+import 'package:task_minimal/ui/widgets/base_project_tile.dart';
 
 
 class ProjectList extends StatelessWidget {

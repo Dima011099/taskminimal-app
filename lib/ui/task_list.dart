@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:swift_flow/ui/task_card.dart';
-import 'package:swift_flow/ui/widgets/empty_task_widget.dart';
+import 'package:task_minimal/ui/task_card.dart';
+import 'package:task_minimal/ui/widgets/empty_task_widget.dart';
 import '../models/task.dart';
 import 'swipe_card.dart';
 

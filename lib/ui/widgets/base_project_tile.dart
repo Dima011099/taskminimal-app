@@ -26,54 +26,93 @@ class BaseProjectTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.dividerColor.withOpacity(0.08),
+   // Автоматически берем первую букву названия проекта для аватара
+  final String firstLetter = title.isNotEmpty ? title[0].toUpperCase() : 'P';
+
+  return Material(
+    color: Colors.transparent,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          // Легкий волновой эффект без изменения фона самой карточки
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 4, // Боковые отступы строго 24px по сетке макета
+              vertical: 12,   // Компактный вертикальный отступ
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.dashboard_customize_rounded,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+            child: Row(
+              children: [
+                // ====== КРУГЛЫЙ АВАТАР ПРОЕКТА ======
+                Container(
+                  width: 48, // Диаметр 48px (r=24 из вашего SVG)
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFEFF6FF), // Нежно-синий фон подложки
+                  ),
+                  child: Center(
+                    child: Text(
+                      firstLetter,
+                      style: const TextStyle(
+                        fontFamily: '.SF Pro Text',
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2563EB), // Яркий фирменный кобальт
+                      ),
+                    ),
                   ),
                 ),
-              ),
-             /* IconButton(onPressed: onDelete,
-              icon: Icon(
-                Icons.delete_outline,
-                color: theme.iconTheme.color?.withOpacity(0.5),
-                size: 20,
-              ),),*/
-                          PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20, color: Color.from(red: 0.3, blue: 0.1, green: 0.15, alpha: .5)), // Иконка фильтра
+                const SizedBox(width: 16), // Отступ между аватаром и текстом
+                
+                // ====== ТЕКСТОВЫЙ БЛОК (ЗАГОЛОВОК + ОПИСАНИЕ) ======
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: '.SF Pro Text',
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F141C), // Глубокий антрацит
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                      const SizedBox(height: 2), // Микро-отступ между строками
+                      Text(
+                        // Сюда можно передавать переменную описания. Пока оставим ваш текст с макета:
+                        title == 'Хюгге: Зелёный остров' 
+                            ? 'Хрупкая эко-среда на малень...'
+                            : 'Минималистичный менеджер...',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: '.SF Pro Text',
+                          fontSize: 13,
+                          fontWeight: FontWeight.normal,
+                          color: Color(0xFF475569), // Slate 600 для высокой контрастности
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // ====== КНОПКА ТРОЕТОЧИЯ (МЕНЮ) ======
+                PopupMenuButton<String>(
+                  // Увеличиваем размер touch target за счет встроенных паддингов иконки
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(
+                    Icons.more_vert_rounded, // Скругленное аккуратное троеточие
+                    size: 20, 
+                    color: Color(0xFF94A3B8), // Серый Slate 400 из макета
+                  ),
                   onSelected: (String result) {
                     switch(result){
                       case 'edit':
@@ -81,57 +120,55 @@ class BaseProjectTile extends StatelessWidget {
                         showDialog(
                           context: context,
                           builder: (_) => AlertDialog(
-                          title: const Text('Edit Task'),
-                          content: TextField(controller: input, autofocus: true),
-                          actions: [
-                            TextButton(onPressed: Navigator.of(context).pop, child: const Text('Отмена')),
-                            ElevatedButton(
-                            onPressed: () {
-                             // controller.add(input.text);
-                              onUpdate(projectId, input.text);
-                              input.clear();
-                              Navigator.pop(context);
-                            },
-                          child: const Text('Save'),
-                        ),
-                        ],
-                      ),
-                  );
-                      break;
+                            title: const Text('Edit Task'),
+                            content: TextField(controller: input, autofocus: true),
+                            actions: [
+                              TextButton(onPressed: Navigator.of(context).pop, child: const Text('Отмена')),
+                              ElevatedButton(
+                                onPressed: () {
+                                  onUpdate(projectId, input.text);
+                                  input.clear();
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Save'),
+                              ),
+                            ],
+                          ),
+                        );
+                        break;
                       case 'delete':
-                        onDelete!();
-                      break;
+                        onDelete?.call();
+                        break;
                       case 'export':
                         onExport(projectId);
-                      break;
+                        break;
                       case 'sync':
-
-                      break;
+                        break;
                     }
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
-                  value: 'edit',
-                  child: Text('Edit'),
+                  },
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    const PopupMenuItem<String>(value: 'edit', child: Text('Edit')),
+                    const PopupMenuItem<String>(value: 'delete', child: Text('Delete')),
+                    const PopupMenuItem<String>(value: 'sync', child: Text('Sync')),
+                    const PopupMenuItem<String>(value: 'export', child: Text('Export')),
+                  ],
                 ),
-                  const PopupMenuItem<String>(
-                    value: 'delete',
-                    child: Text('Delete'),
-                  ),
-                   const PopupMenuItem<String>(
-                    value: 'sync',
-                    child: Text('Sync'),
-                  ),
-                  const PopupMenuItem(
-                    value: 'export',
-                    child: Text('Expot'),
-                  ),
               ],
             ),
-            ],
           ),
         ),
-      ),
-    );
+        
+        // ====== СИСТЕМНАЯ РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ ======
+        const Padding(
+          padding: EdgeInsets.only(left: 88, right: 24), // Линия начинается строго под текстом
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: Color(0xFFF1F5F9), // Ультра-светлый серый Slate 100
+          ),
+        ),
+      ],
+    ),
+  );
   }
 }

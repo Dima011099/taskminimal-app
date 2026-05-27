@@ -237,7 +237,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                       ),
                       onPressed: () {
                         if (input.text.isNotEmpty) {
-                          controller.add(input.text);
+                          controller.addProject(input.text);
                           input.clear();
                         }
                         Navigator.pop(context);

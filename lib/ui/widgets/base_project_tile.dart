@@ -117,24 +117,85 @@ class BaseProjectTile extends StatelessWidget {
                     switch(result){
                       case 'edit':
                         input.text = title;
-                        showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text('Edit Task'),
-                            content: TextField(controller: input, autofocus: true),
-                            actions: [
-                              TextButton(onPressed: Navigator.of(context).pop, child: const Text('Отмена')),
-                              ElevatedButton(
-                                onPressed: () {
+  showModalBottomSheet(
+        context: context,
+        isScrollControlled: true, // Позволяет шторке подниматься вместе с клавиатурой
+        backgroundColor: Colors.transparent,
+        builder: (context) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Новая задача',
+                  style: TextStyle(
+                    fontFamily: '.SF Pro Text',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F141C),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: input,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Название задачи...',
+                    hintStyle: TextStyle(color: Color(0xFF94A3B8)),
+                    border: InputBorder.none,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        input.clear();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Отмена', style: TextStyle(color: Color(0xFF64748B))),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                  onUpdate(projectId, input.text);
+                                  input.clear();
+                                  Navigator.pop(context);
+                      },
+                      child: const Text('Создать'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+                        /*
+                        
+                                                      onPressed: () {
                                   onUpdate(projectId, input.text);
                                   input.clear();
                                   Navigator.pop(context);
-                                },
-                                child: const Text('Save'),
-                              ),
-                            ],
-                          ),
-                        );
+                                }
+                         */
                         break;
                       case 'delete':
                         onDelete?.call();

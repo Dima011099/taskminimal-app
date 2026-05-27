@@ -91,7 +91,7 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
             icon: const Icon(
               Icons.arrow_back_rounded, 
               color: Color(0xFF0F141C), 
-              size: 22,
+              size: 20,
             ),
             onPressed: () => Navigator.of(context).pop(),
           ),
@@ -99,11 +99,12 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
         
         // 2. УТОНЧЕННЫЙ ЗАГОЛОВОК ПРОЕКТА (Medium 15px, графитовый оттенок)
         title: const Text(
-          'Хюгге: зелёный остров',
+          'Задачи'
+        ,
           style: TextStyle(
             fontFamily: '.SF Pro Text', // Системный шрифт iOS/Android
-            fontSize: 15,
-            fontWeight: FontWeight.w500, // Medium вместо тяжелого Bold
+            fontSize: 18,
+            fontWeight: FontWeight.w600, // Medium вместо тяжелого Bold
             color: Color(0xFF1E293B), // Глубокий мягкий графит slate-800
             letterSpacing: -0.3,
           ),
@@ -364,7 +365,7 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
     // ====== РЕНДЕРИНГ НАШЕЙ КРУТОЙ СИНЕЙ КАПСУЛЫ ИЗ SVG ======
     child: Container(
       width: 300, // Строгая ширина по сетке из макета
-      height: 40, // Изящная b2b высота
+      height: 50, // Изящная b2b высота
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: const LinearGradient(

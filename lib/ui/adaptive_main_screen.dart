@@ -3,6 +3,7 @@ import 'package:task_minimal/controllers/task_controller.dart';
 import 'package:task_minimal/models/task.dart';
 import 'package:task_minimal/ui/project_screen.dart';
 import 'package:task_minimal/ui/widgets/empty_task_widget.dart';
+import 'package:task_minimal/ui/widgets/minimal_desktop_side_panel.dart';
 import 'package:task_minimal/ui/widgets/minimal_tab_bar.dart';
 import 'package:task_minimal/ui/widgets/project_list.dart';
 
@@ -29,7 +30,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
     super.initState();
     controller = TaskController(DatabaseHelper.instance)..loadProjects();
   }
-
+/*
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -167,15 +168,187 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
           }
         },
       ),
-        bottomNavigationBar: new MinimalTabBar(
+    /*    bottomNavigationBar: new MinimalTabBar(
     onProfilePressed: () => print("Профиль нажат"),
     onFolderPressed: () => print("Папка нажата"),
     onSyncPressed: () => print("Синхронизация"),
     onExportPressed: () => controller.importAsNewProject('Import Project'),
     onAddPressed: () => _addProject(),
-  ),
+  ),*/
+  bottomNavigationBar: new MinimalDesktopSidePanel(
+    onProfilePressed:  () => print("Профиль нажат"), 
+    onFolderPressed: () => print("Профиль нажат"), 
+    onSyncPressed: () => print("Профиль нажат"), onExportPressed: () => print("Профиль нажат"), 
+    onAddProjectPressed: () => print("Профиль нажат"))
+    );
+  }*/
+
+    @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        toolbarHeight: 72,
+        leadingWidth: 72,
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Row(
+            children: [
+              // ====== ТОТ САМЫЙ МИНИ-ЛОГОТИП ======
+              SizedBox(
+                width: 30,
+                height: 26,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 0, top: 0,
+                      child: Container(
+                        width: 13, height: 5,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F141C),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 16, top: 0,
+                      child: Container(
+                        width: 13, height: 5,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 12, top: 9,
+                      child: Container(
+                        width: 5, height: 16,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F141C),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              // ====== ОБНОВЛЕННЫЙ ТЕКСТ ======
+              const Text(
+                'Minimal',
+                style: TextStyle(
+                  fontFamily: '.SF Pro Text',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F141C),
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: AnimatedBuilder(
+        animation: controller,
+        builder: (context, constraints) {
+          if (!isMobile) {
+            // =========================================================
+            // ДЕСКТОП: Панель проектов + новая панель ПК жестко внизу колонки
+            // =========================================================
+            return Stack(
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 300,
+                      child: Column(
+                        children: [
+                          // Список проектов занимает всю верхнюю часть
+                          Expanded(
+                            child: ProjectList(
+                              onProjectSelected: (p) => setState(() => _selectedProject = p),
+                              controller: controller,
+                              onProjectDeleted: (deletedId) {
+                                if (_selectedProject?.id == deletedId) {
+                                  setState(() => _selectedProject = null);
+                                }
+                              },
+                              onProjectUpdate: controller.updateProject,
+                              onExport: controller.exportJson,
+                            ),
+                          ),
+                          // ====== ВСТАВЛЯЕМ СЮДА ПАНЕЛЬ ДЛЯ ПК ======
+                          // Она зафиксирована строго под списком и имеет ширину 300px
+                          MinimalDesktopSidePanel(
+                            onProfilePressed: () => print("Профиль нажат"),
+                            onFolderPressed: () => print("Папка нажата"),
+                            onSyncPressed: () => print("Синхронизация"),
+                            onExportPressed: () => controller.importAsNewProject('Import Project'),
+                            onAddProjectPressed: () => _addProject(), // Ваша функция добавления проекта
+                          ),
+                        ],
+                      ),
+                    ),
+                    const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+                    // Канбан-доска
+                    Expanded(
+                      child: _selectedProject != null
+                          ? ProjectScreen(projectID: _selectedProject!.id)
+                          : const Center(child: EmptyTasksWidget()),
+                    ),
+                  ],
+                ),
+                
+                // ВЫТЯНУТАЯ СИНЯЯ КНОПКА ЗАДАЧИ В ПРАВОМ НИЖНЕМ УГЛУ ДЕСКТОПА
+               
+              ],
+            );
+          } else {
+            // =========================================================
+            // МОБИЛЬНЫЕ: Обычный список
+            // =========================================================
+            return ProjectList(
+              controller: controller,
+              onProjectDeleted: (deletedId) {
+                if (_selectedProject?.id == deletedId) {
+                  setState(() => _selectedProject = null);
+                }
+              },
+              onProjectSelected: (p) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProjectScreen(projectID: p.id)),
+                );
+              },
+              onProjectUpdate: controller.updateProject,
+              onExport: controller.exportJson,
+            );
+          }
+        },
+      ),
+      // Нижний таббар появляется ТОЛЬКО если это мобилка. На ПК возвращаем null.
+      bottomNavigationBar: isMobile
+          ? MinimalTabBar(
+              onProfilePressed: () => print("Профиль нажат"),
+              onFolderPressed: () => print("Папка нажата"),
+              onSyncPressed: () => print("Синхронизация"),
+              onExportPressed: () => controller.importAsNewProject('Import Project'),
+              onAddPressed: () => _addProject(),
+            )
+          : null,
     );
   }
+
 
   Future _addProject(){
     return   showModalBottomSheet(
@@ -253,6 +426,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
       );
     
   }
+
 
   
 }

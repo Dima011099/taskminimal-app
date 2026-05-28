@@ -11,7 +11,6 @@ class BaseProjectTile extends StatelessWidget {
   
   final TextEditingController input = TextEditingController();
   
-
   BaseProjectTile({
     super.key,
     required this.title,
@@ -26,7 +25,6 @@ class BaseProjectTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-   // Автоматически берем первую букву названия проекта для аватара
   final String firstLetter = title.isNotEmpty ? title[0].toUpperCase() : 'P';
 
   return Material(
@@ -188,14 +186,7 @@ class BaseProjectTile extends StatelessWidget {
           ),
         ),
       );
-                        /*
-                        
-                                                      onPressed: () {
-                                  onUpdate(projectId, input.text);
-                                  input.clear();
-                                  Navigator.pop(context);
-                                }
-                         */
+
                         break;
                       case 'delete':
                         onDelete?.call();

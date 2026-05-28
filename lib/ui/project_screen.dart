@@ -287,10 +287,9 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
       Widget _fab() {
   return GestureDetector(
     onTap: () {
-      // Вместо тяжелого AlertDialog открываем аккуратную шторку снизу в стиле iOS/Linear
       showModalBottomSheet(
         context: context,
-        isScrollControlled: true, // Позволяет шторке подниматься вместе с клавиатурой
+        isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (context) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -362,7 +361,6 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
         ),
       );
     },
-    // ====== РЕНДЕРИНГ НАШЕЙ КРУТОЙ СИНЕЙ КАПСУЛЫ ИЗ SVG ======
     child: Container(
       width: 300, // Строгая ширина по сетке из макета
       height: 50, // Изящная b2b высота

@@ -166,11 +166,7 @@ Future<void> vacuumDeletedData() async {
         whereArgs: [id],
       );
    }
-/*
-  Future<int> updateTaskTitle(int id, String title) async {
-    final db = await instance.database;
-    return await db.update('tasks', {'title': title}, where: 'id = ?', whereArgs: [id]);
-  }*/
+
    Future<int> updateTaskTitle(int id, String title) async {
     final db = await instance.database;
     return await db.update(
@@ -180,17 +176,43 @@ Future<void> vacuumDeletedData() async {
       whereArgs: [id]
     );
   }
-
+/*
   Future<int> updateProjectTitle(int id, String title) async {
     final db = await instance.database;
     return await db.update('projects', {'name': title,  'update_at': DateTime.now().toIso8601String()}, where: 'id = ?', whereArgs: [id]);
   }
+*/
 
-/*
-  Future<int> updateTaskStatus(int id, int status) async {
-    final db = await instance.database;
-    return await db.update('tasks', {'status': status}, where: 'id = ?', whereArgs: [id]);
-  }*/
+Future<int> updateProjectTitle(int id, String title) async {
+  final dbClient = await instance.database;
+  final now = DateTime.now().toIso8601String();
+
+  // Обязательно используем транзакцию, чтобы оба обновления выполнились вместе
+  return await dbClient.transaction((txn) async {
+    // 1. Обновляем имя и дату самого проекта
+    final res = await txn.update(
+      'projects', 
+      {
+        'name': title,  
+        'update_at': now
+      }, 
+      where: 'id = ?', 
+      whereArgs: [id]
+    );
+
+    // 2. ИСПРАВЛЕНИЕ: Обновляем update_at у всех задач этого проекта.
+    // Теперь локальные задачи станут "свежее" серверных, и сервер не затрет их старыми копиями.
+    await txn.update(
+      'tasks',
+      {'update_at': now},
+      where: 'project_id = ?',
+      whereArgs: [id],
+    );
+
+    return res;
+  });
+}
+
     Future<int> updateTaskStatus(int id, int status) async {
     final db = await instance.database;
     return await db.update(
@@ -200,11 +222,7 @@ Future<void> vacuumDeletedData() async {
       whereArgs: [id]
     );
   }
-/*
-  Future<int> deleteTask(int id) async {
-    final db = await instance.database;
-    return await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
-  }*/
+
     Future<int> deleteTask(int id) async {
     final db = await instance.database;
     return await db.update(
@@ -215,11 +233,7 @@ Future<void> vacuumDeletedData() async {
     );
   }
 
-/*
-  Future<int> deleteProject(int id) async {
-    final db = await instance.database;
-    return await db.delete('projects', where: 'id = ?', whereArgs: [id]);
-  }*/
+
   Future<int> deleteProject(int id) async {
   final dbClient = await instance.database;
   final now = DateTime.now().toIso8601String();

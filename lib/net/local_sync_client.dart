@@ -7,8 +7,7 @@ import 'package:task_minimal/database_helper.dart';
 class LocalSyncClient {
   final db = DatabaseHelper.instance;
 
-  // --- МЕТОД ДЛЯ СКАЧИВАНИЯ (GET) ---
-  Future<bool> syncFromWifi(String ipAddress, Function(String log) onLog) async {
+Future<bool> syncFromWifi(String ipAddress, Function(String log) onLog) async {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 5);
 
@@ -17,13 +16,10 @@ class LocalSyncClient {
       
       final cleanUrl = ipAddress.replaceAll('http://', '').trim();
       
-      // УМНЫЙ РАЗБОР URL:
       Uri targetUri;
       if (cleanUrl.contains('/') || cleanUrl.contains('.php')) {
-        // Если пользователь сам написал путь или файл (.php, /sync.php, /my-route) — шлем как есть
         targetUri = Uri.parse('http://$cleanUrl');
       } else {
-        // Если введен только чистый IP или IP:порт — дописываем дефолтный роут /sync
         targetUri = Uri.parse('http://$cleanUrl/sync');
       }
 
@@ -49,18 +45,17 @@ class LocalSyncClient {
 
       final dbClient = await db.database;
 
-// Внутри метода syncFromWifi класса LocalSyncClient в блоке транзакции:
-await dbClient.transaction((txn) async {
-  Map<int, int> projectIdMapping = {};
+      await dbClient.transaction((txn) async {
+        // Карта для сопоставления: КЛЮЧ = серверный (старый) id проекта, ЗНАЧЕНИЕ = локальный id проекта на этом устройстве
+        Map<int, int> projectIdMapping = {};
 
-  // 1. СИНХРОНИЗАЦИЯ ПРОЕКТОВ (как и раньше, маппим ID по токенам)
-    for (var projItem in incomingProjects) {
+        // 1. СИНХРОНИЗАЦИРУЕМ ВСЕ ПРОЕКТЫ
+        for (var projItem in incomingProjects) {
           Map<String, dynamic> projectMap = Map<String, dynamic>.from(projItem);
           int oldProjectId = projectMap['id'] as int;
           String projectToken = projectMap['project_token'] as String;
           String projectName = projectMap['name'] ?? 'Проект';
           
-          // Безопасно парсим флаг удаления проекта из пришедшего JSON
           int incomingIsDeleted = int.tryParse(projectMap['is_deleted'].toString()) ?? 0;
 
           final List<Map<String, dynamic>> existingSync = await txn.query(
@@ -71,31 +66,47 @@ await dbClient.transaction((txn) async {
 
           int targetProjectId;
 
-          if (existingSync.isNotEmpty) {
-            // Проект уже существует на устройстве
-            targetProjectId = existingSync.first['project_id'] as int;
-            
-            // ИСПРАВЛЕНИЕ: Передаем в UPDATE пришедший статус is_deleted и оригинальный update_at
-            await txn.update(
-              'projects',
-              {
-                'name': projectName, 
-                'is_deleted': incomingIsDeleted, // Мягко удаляем или восстанавливаем проект
-                'update_at': projectMap['update_at'] ?? DateTime.now().toIso8601String()
-              },
-              where: 'id = ?',
-              whereArgs: [targetProjectId],
-            );
-            
-            // Чистим его старые задачи перед записью новых (если проект живой)
-            if (incomingIsDeleted == 0) {
-              await txn.delete('tasks', where: 'project_id = ?', whereArgs: [targetProjectId]);
-            }
-          } else {
-            // Проекта нет, создаем с нуля
+if (existingSync.isNotEmpty) {
+  targetProjectId = existingSync.first['project_id'] as int;
+  
+  // 1. Получаем текущую локальную версию проекта из базы телефона
+  final List<Map<String, dynamic>> localProjectRecord = await txn.query(
+    'projects',
+    where: 'id = ?',
+    whereArgs: [targetProjectId],
+  );
+
+  if (localProjectRecord.isNotEmpty) {
+    DateTime localUpdate = DateTime.parse(localProjectRecord.first['update_at'] as String);
+    DateTime incomingUpdate = DateTime.parse(projectMap['update_at'] ?? DateTime.now().toIso8601String());
+
+    // ИСПРАВЛЕНИЕ: Обновляем проект только если пришедшие данные из сети СВЕЖЕЕ локальных
+    if (incomingUpdate.isAfter(localUpdate)) {
+      await txn.update(
+        'projects',
+        {
+          'name': projectName, 
+          'is_deleted': incomingIsDeleted, 
+          'update_at': projectMap['update_at']
+        },
+        where: 'id = ?',
+        whereArgs: [targetProjectId],
+      );
+
+      // Если проект удален на сервере — гасим задачи
+      if (incomingIsDeleted == 1) {
+        await txn.update(
+          'tasks',
+          {'is_deleted': 1, 'update_at': DateTime.now().toIso8601String()},
+          where: 'project_id = ?',
+          whereArgs: [targetProjectId],
+        );
+      }}}
+    }else {
+            // Создание нового проекта, если его не было в sync_tasks
             targetProjectId = await txn.insert('projects', {
               'name': projectName,
-              'is_deleted': incomingIsDeleted, // Пишем актуальный статус для нового проекта
+              'is_deleted': incomingIsDeleted, 
               'created_at': projectMap['created_at'] ?? DateTime.now().toIso8601String(),
               'update_at': projectMap['update_at'] ?? DateTime.now().toIso8601String(),
             });
@@ -109,61 +120,58 @@ await dbClient.transaction((txn) async {
           projectIdMapping[oldProjectId] = targetProjectId;
         }
 
-  // 2. УМНОЕ СЛИЯНИЕ ЗАДАЧ ПО ВРЕМЕНИ (БЕЗ УДАЛЕНИЯ ТАБЛИЦЫ)
-  for (var taskItem in incomingTasks) {
-    Map<String, dynamic> taskMap = Map<String, dynamic>.from(taskItem);
-    int oldProjectIDForTask = taskMap['project_id'] as int;
-    String taskToken = taskMap['task_token'] as String;
+        // 2. УМНОЕ СЛИЯНИЕ ЗАДАЧ ПО ВРЕМЕНИ
+        for (var taskItem in incomingTasks) {
+          Map<String, dynamic> taskMap = Map<String, dynamic>.from(taskItem);
+          int oldProjectIDForTask = taskMap['project_id'] as int;
+          String taskToken = taskMap['task_token'] as String;
 
-    if (projectIdMapping.containsKey(oldProjectIDForTask)) {
-      taskMap['project_id'] = projectIdMapping[oldProjectIDForTask];
-      final int targetProjectId = taskMap['project_id'];
+          if (projectIdMapping.containsKey(oldProjectIDForTask)) {
+            taskMap['project_id'] = projectIdMapping[oldProjectIDForTask];
+            final int targetProjectId = taskMap['project_id'];
 
-      // Ищем задачу локально по её постоянному уникальному токену
-      final List<Map<String, dynamic>> localTaskRecord = await txn.query(
-        'tasks',
-        where: 'task_token = ? AND project_id = ?',
-        whereArgs: [taskToken, targetProjectId],
-      );
+            // Ищем задачу локально по её постоянному уникальному токену
+            final List<Map<String, dynamic>> localTaskRecord = await txn.query(
+              'tasks',
+              where: 'task_token = ? AND project_id = ?',
+              whereArgs: [taskToken, targetProjectId],
+            );
 
-      if (localTaskRecord.isEmpty) {
-        // Задачи еще нет на этом устройстве — добавляем её (вместе со статусом удаления, если она удалена на сервере)
-        taskMap.remove('id'); 
-        await txn.insert('tasks', taskMap);
-      } else {
-        // Задача есть на обоих девайсах — сравниваем таймстампы update_at
-        DateTime localUpdate = DateTime.parse(localTaskRecord.first['update_at'] as String);
-        DateTime incomingUpdate = DateTime.parse(taskMap['update_at'] as String);
+            if (localTaskRecord.isEmpty) {
+              // Задачи нет — вставляем чистую запись без поля 'id' (чтобы sqflite присвоил свой автоинкремент)
+              taskMap.remove('id'); 
+              await txn.insert('tasks', taskMap);
+            } else {
+              // Задача есть — теперь сравнение дат будет работать железно!
+              DateTime localUpdate = DateTime.parse(localTaskRecord.first['update_at'] as String);
+              DateTime incomingUpdate = DateTime.parse(taskMap['update_at'] as String);
 
-        if (incomingUpdate.isAfter(localUpdate)) {
-          // Пришедшие данные свежее — обновляем локальную строку (включая флаг is_deleted)
-          int localTaskId = localTaskRecord.first['id'] as int;
-          taskMap.remove('id'); 
-          
-          await txn.update(
-            'tasks',
-            taskMap,
-            where: 'id = ?',
-            whereArgs: [localTaskId],
-          );
+              if (incomingUpdate.isAfter(localUpdate)) {
+                int localTaskId = localTaskRecord.first['id'] as int;
+                taskMap.remove('id'); 
+                
+                await txn.update(
+                  'tasks',
+                  taskMap,
+                  where: 'id = ?',
+                  whereArgs: [localTaskId],
+                );
+              }
+              // Если локальные данные новее, входящие просто игнорируются
+            }
+          }
         }
-        // Если локальная дата изменения свежее — игнорируем входящую запись, оставляя локальную версию
-      }
-    }
-  }
-});
+      });
 
-
-      onLog("Полная синхронизация базы завершена успешно!");
+      onLog("Синхронизация успешно завершена!");
       return true;
 
     } catch (e) {
-      onLog("Ошибка полной синхронизации: $e");
+      onLog("Критическая ошибка синхронизации: $e");
       return false;
-    } finally {
-      client.close();
     }
-  }
+}
+
 
   // --- МЕТОД ДЛЯ ОТПРАВКИ (POST) ---
   Future<bool> sendDataToRemoteNode(String ipAddress, Function(String log) onLog) async {

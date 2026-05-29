@@ -293,7 +293,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                             onProfilePressed: () => print("Профиль нажат"),
                             onFolderPressed: () => print("Папка нажата"),
                             onSyncPressed: () => print("Синхронизация"),
-                            onExportPressed: () => controller.importAsNewProject('Import Project'),
+                            onExportPressed: () => controller.importAsNewProject(context),
                             onAddProjectPressed: () => _addProject(), // Ваша функция добавления проекта
                           ),
                         ],
@@ -342,7 +342,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
               onProfilePressed: () => print("Профиль нажат"),
               onFolderPressed: () => print("Папка нажата"),
               onSyncPressed: () => print("Синхронизация"),
-              onExportPressed: () => controller.importAsNewProject('Import Project'),
+              onExportPressed: () => controller.importAsNewProject(context),
               onAddPressed: () => _addProject(),
             )
           : null,

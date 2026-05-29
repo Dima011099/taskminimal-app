@@ -72,6 +72,22 @@ class DatabaseHelper {
     );
   }
 
+  Future<Map<String, dynamic>?> readProjectWhereID(int id) async {
+  final db = await instance.database;
+  final maps = await db.query(
+    'projects',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+
+  if (maps.isNotEmpty) {
+    return maps.first; // Возвращаем найденный проект
+  } else {
+    return null; // Если проекта с таким id нет в базе
+  }
+}
+
+
   Future<List<Map<String, dynamic>>> readAllProjects() async {
     final db = await instance.database;
     return await db.query('projects');

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:uuid/uuid.dart';
 
 import 'package:flutter/material.dart';
 import '../models/task.dart';
@@ -59,7 +60,7 @@ class TaskController extends ChangeNotifier {
     await loadProjects();
   }
 
-
+/*
   Future<void> exportJson(int id) async{
       final data = await db.readAllTasksWhereProjectID(id);
       String jsonString = jsonEncode(data);
@@ -79,8 +80,160 @@ class TaskController extends ChangeNotifier {
   if (outputFile != null) {
     print('Файл успешно сохранен: $outputFile');
   }
-  }
+  }*/
 
+Future<void> exportJson(int id) async {
+  final projectData = await db.readProjectWhereID(id); 
+  if (projectData == null) return;
+  
+  final dbClient = await db.database;
+  
+  // 1. Проверяем или создаем sync_token для этого проекта
+  final List<Map<String, dynamic>> syncRecords = await dbClient.query(
+    'sync_tasks',
+    where: 'project_id = ?',
+    whereArgs: [id],
+  );
+  
+  String projectToken;
+ if (syncRecords.isEmpty) {
+  projectToken = const Uuid().v4(); 
+  
+  await dbClient.insert('sync_tasks', {
+    'project_id': id,
+    'sync_token': projectToken,
+  });
+} else {
+  projectToken = syncRecords.first['sync_token'] as String;
+}
+  
+  final tasksData = await db.readAllTasksWhereProjectID(id);
+
+  // 2. Добавляем project_token в JSON payload
+  final Map<String, dynamic> exportPayload = {
+    "export_version": "1.0",
+    "project_token": projectToken, // Ключевой маркер против дубликатов
+    "project": {
+      "name": projectData['name'],
+      "created_at": projectData['created_at'],
+      "update_at": projectData['update_at'],
+    },
+    "tasks": tasksData,
+  };
+
+  String jsonString = jsonEncode(exportPayload);
+  Uint8List bytes = utf8.encode(jsonString);
+
+  String? outputFile = await FilePicker.platform.saveFile(
+    dialogTitle: 'Выберите место для сохранения экспорта',
+    fileName: 'project_export_$id.json',
+    type: FileType.custom,
+    allowedExtensions: ['json'],
+    bytes: bytes, 
+  );
+
+  if (outputFile != null) {
+    await File(outputFile).writeAsBytes(bytes);
+  }
+}
+
+
+Future<void> importAsNewProject(BuildContext context) async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['json'],
+  );
+
+  if (result == null || result.files.single.path == null) return;
+
+  try {
+    File file = File(result.files.single.path!);
+    String content = await file.readAsString();
+    Map<String, dynamic> importPayload = jsonDecode(content);
+
+    String? projectToken = importPayload['project_token'];
+    Map<String, dynamic> projectData = importPayload['project'] ?? {};
+    String projectName = projectData['name'] ?? 'Импортированный проект';
+    
+    final dbClient = await db.database;
+    int targetProjectId;
+    bool isExist = false;
+
+    // 1. Проверяем, импортировался ли этот проект ранее по токену
+    if (projectToken != null) {
+      final List<Map<String, dynamic>> existingSync = await dbClient.query(
+        'sync_tasks',
+        where: 'sync_token = ?',
+        whereArgs: [projectToken],
+      );
+
+      if (existingSync.isNotEmpty) {
+        // Проект уже существует! Получаем его локальный ID
+        targetProjectId = existingSync.first['project_id'] as int;
+        isExist = true;
+        
+        // Очищаем старые задачи этого проекта, чтобы избежать дублирования строк
+        await dbClient.delete(
+          'tasks',
+          where: 'project_id = ?',
+          whereArgs: [targetProjectId],
+        );
+        
+        // Обновляем имя проекта на случай, если оно изменилось в файле
+        await db.updateProjectTitle(targetProjectId, projectName);
+      } else {
+        // Проекта с таким токеном нет, создаем новый
+        targetProjectId = await db.createProject(projectName);
+        // Регистрируем его токен в таблице синхронизации
+        await dbClient.insert('sync_tasks', {
+          'project_id': targetProjectId,
+          'sync_token': projectToken,
+        });
+      }
+    } else {
+      // Если файл старый или без токена, просто создаем новый проект
+      targetProjectId = await db.createProject(projectName);
+    }
+
+    // 2. Записываем задачи (id конфликтов не будет, они генерируются заново)
+    List<dynamic> tasksData = importPayload['tasks'] ?? [];
+    for (var item in tasksData) {
+      Map<String, dynamic> taskMap = Map<String, dynamic>.from(item);
+      taskMap.remove('id'); 
+      taskMap['project_id'] = targetProjectId; 
+
+      await db.insertTask(taskMap);
+    }
+    
+    loadProjects(); 
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isExist 
+            ? 'Данные проекта "$projectName" успешно обновлены!' 
+            : 'Проект "$projectName" успешно импортирован!'),
+          backgroundColor: const Color(0xFF1E68F6),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+    
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка импорта: $e'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+}
+
+
+/*
   Future<void> importAsNewProject(String projectName) async {
   // 1. Выбираем файл
   FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -113,44 +266,13 @@ class TaskController extends ChangeNotifier {
       // Сохраняем задачу
       await db.insertTask(taskMap);
     }
-  /*   try {
-    final dbInstance = await db.database; // Получаем доступ к экземпляру sqflite
-
-    // НАЧИНАЕМ ТРАНЗАКЦИЮ
-    await dbInstance.transaction((txn) async {
-      
-      // 3. Создаем проект ВНУТРИ транзакции (используем txn.insert вместо db.createProject)
-      int newProjectId = await txn.insert('projects', {
-        'title': projectName,
-        'created_at': DateTime.now().toIso8601String(),
-      });
-
-      // 4. Привязываем задачи
-      for (var item in tasksData) {
-        Map<String, dynamic> taskMap = Map<String, dynamic>.from(item);
-        
-        taskMap.remove('id'); 
-        taskMap['project_id'] = newProjectId; 
-
-        // ВАЖНО: передаем txn в ваш новый метод insertTask
-        await db.insertTask(taskMap, txn: txn); 
-      }
-    });
-
-    print("Импорт завершен успешно");
-    loadProjects(); 
-    
-  } catch (e) {
-    print("Ошибка импорта: $e"); // Если что-то пойдет не так, проект и задачи НЕ создадутся вообще
-  }*/
-
     print("Импорт завершен. Новый проект ID: $newProjectId");
     loadProjects(); // Обновляем UI
     
   } catch (e) {
     print("Ошибка импорта: $e");
   }
-}
+}*/
 
 
   Future<void> addProject(String name) async {

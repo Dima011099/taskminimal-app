@@ -78,52 +78,104 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         ),
       );
     }
-  }*/
-  
-
+  }
+  */
     void _connectToPrivateNode() async {
     final ip = _urlController.text.trim();
     if (ip.isEmpty) return;
 
-    // Инициализируем хелпер базы данных прямо здесь, чтобы не было ошибки
-    final dbHelper = DatabaseHelper.instance;
-    final localProjects = await dbHelper.readAllProjects();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Синхронизация...'), duration: Duration(seconds: 1)),
+    );
 
-    if (localProjects.isNotEmpty) {
-      // ИСПОЛЬЗУЕМ КЛИЕНТ ДЛЯ ОТПРАВКИ (POST)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Синхронизация (отправка на узел)...'), duration: Duration(seconds: 1)),
-      );
-
-      bool success = await _syncClient.sendDataToRemoteNode(ip, (log) => print(log));
-
+    // 1. Сначала строго скачиваем чужие изменения (GET)
+    bool pullSuccess = await _syncClient.syncFromWifi(ip, (log) => print(log));
+    
+    if (!pullSuccess) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Данные успешно выгружены!' : 'Ошибка выгрузки'),
-            backgroundColor: success ? const Color(0xFF1E68F6) : Colors.redAccent,
-          ),
+          const SnackBar(content: Text('Ошибка загрузки данных'), backgroundColor: Colors.redAccent),
         );
       }
-    } else {
-      // ИСПОЛЬЗУЕМ КЛИЕНТ ДЛЯ СКАЧИВАНИЯ (GET)
+      return; // Если первый шаг упал, прерываем, чтобы не затереть базу
+    }
+
+    // ЖЕСТКАЯ ПАУЗА в 300 мс — даем однопоточному серверу php -S закрыть файлы на диске
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 2. Только теперь пушим объединенную локальную базу обратно на сервер (POST)
+    bool pushSuccess = await _syncClient.sendDataToRemoteNode(ip, (log) => print(log));
+
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Синхронизация (скачивание с узла)...'), duration: Duration(seconds: 1)),
+        SnackBar(
+          content: Text(pushSuccess ? 'Синхронизация успешна!' : 'Ошибка отправки изменений'),
+          backgroundColor: pushSuccess ? const Color(0xFF1E68F6) : Colors.redAccent,
+        ),
       );
-
-      bool success = await _syncClient.syncFromWifi(ip, (log) => print(log));
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Синхронизация успешна!' : 'Ошибка подключения'),
-            backgroundColor: success ? const Color(0xFF1E68F6) : Colors.redAccent,
-          ),
-        );
-        if (success) Navigator.pop(context, true);
+      
+      // Закрываем экран только если ОБА шага прошли успешно
+      if (pushSuccess) {
+        Navigator.pop(context, true); 
       }
     }
   }
+
+/*
+     void _connectToPrivateNode() async {
+    final ip = _urlController.text.trim();
+    if (ip.isEmpty) return;
+
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Синхронизация (скачивание с узла)...'), duration: Duration(seconds: 1)),
+    );
+
+    bool success = await _syncClient.syncFromWifi(ip, (log) => print(log));
+     success = await _syncClient.sendDataToRemoteNode(ip, (log) => print(log));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Синхронизация успешна!' : 'Ошибка подключения'),
+          backgroundColor: success ? const Color(0xFF1E68F6) : Colors.redAccent,
+        ),
+      );
+      if (success) {
+        Navigator.pop(context, true); // Возвращаем true для обновления UI главного экрана
+      }
+    }
+  }*/
+/*
+    void _connectToPrivateNode() async {
+    final ip = _urlController.text.trim();
+    if (ip.isEmpty) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Синхронизация...'), duration: Duration(seconds: 1)),
+    );
+
+    // ТВОЙ РАБОЧИЙ ПОРЯДОК:
+    // 1. Сначала стягиваем чужие изменения с сервера и вливаем в свою SQLite по времени
+    bool success = await _syncClient.syncFromWifi(ip, (log) => print(log));
+    
+    // 2. Затем берем получившуюся общую локальную базу и пушим ее обратно на сервер
+    //success = await _syncClient.sendDataToRemoteNode(ip, (log) => print(log));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Синхронизация успешна!' : 'Ошибка подключения'),
+          backgroundColor: success ? const Color(0xFF1E68F6) : Colors.redAccent,
+        ),
+      );
+      
+      if (success) {
+        Navigator.pop(context, true); // Возвращаем true для обновления главного экрана
+      }
+    }
+  }
+*/
 
 
   @override

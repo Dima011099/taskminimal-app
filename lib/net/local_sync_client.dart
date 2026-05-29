@@ -1,19 +1,38 @@
 import 'dart:io';
 import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:task_minimal/database_helper.dart';
 
 class LocalSyncClient {
   final db = DatabaseHelper.instance;
 
+  // --- МЕТОД ДЛЯ СКАЧИВАНИЯ (GET) ---
   Future<bool> syncFromWifi(String ipAddress, Function(String log) onLog) async {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 5);
 
     try {
       onLog("Подключение к $ipAddress...");
-      final cleanIp = ipAddress.replaceAll('http://', '').replaceAll('/sync', '').trim();
-      final request = await client.getUrl(Uri.parse('http://$cleanIp/sync'));
+      
+      final cleanUrl = ipAddress.replaceAll('http://', '').trim();
+      
+      // УМНЫЙ РАЗБОР URL:
+      Uri targetUri;
+      if (cleanUrl.contains('/') || cleanUrl.contains('.php')) {
+        // Если пользователь сам написал путь или файл (.php, /sync.php, /my-route) — шлем как есть
+        targetUri = Uri.parse('http://$cleanUrl');
+      } else {
+        // Если введен только чистый IP или IP:порт — дописываем дефолтный роут /sync
+        targetUri = Uri.parse('http://$cleanUrl/sync');
+      }
+
+      final request = await client.getUrl(targetUri);
+      
+      request.headers.add(HttpHeaders.cacheControlHeader, "no-cache, no-store, must-revalidate");
+      request.headers.add(HttpHeaders.pragmaHeader, "no-cache");
+      request.headers.add(HttpHeaders.expiresHeader, "0");
+
       final response = await request.close();
 
       if (response.statusCode != HttpStatus.ok) {
@@ -22,32 +41,28 @@ class LocalSyncClient {
       }
 
       final content = await response.transform(utf8.decoder).join();
-
-// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Очищаем JSON-строку от скрытых символов, пробелов и BOM-байтов PHP
-final cleanContent = content.trim().replaceAll(RegExp(r'^\uFEFF'), '');
-
-// Декодируем очищенную строку
-Map<String, dynamic> importPayload = jsonDecode(cleanContent);
-     // Map<String, dynamic> importPayload = jsonDecode(content);
+      final cleanContent = content.trim().replaceAll(RegExp(r'^\uFEFF'), '');
+      Map<String, dynamic> importPayload = jsonDecode(cleanContent);
 
       List<dynamic> incomingProjects = importPayload['projects'] ?? [];
       List<dynamic> incomingTasks = importPayload['tasks'] ?? [];
 
       final dbClient = await db.database;
 
-      // Запускаем транзакцию для всей базы сразу
-      await dbClient.transaction((txn) async {
-        // Карта для связи старых ID проектов (из файла) со свежими локальными ID (в этой БД)
-        Map<int, int> projectIdMapping = {};
+// Внутри метода syncFromWifi класса LocalSyncClient в блоке транзакции:
+await dbClient.transaction((txn) async {
+  Map<int, int> projectIdMapping = {};
 
-        // 1. СИНХРОНИЗИРУЕМ ВСЕ ПРОЕКТЫ
-        for (var projItem in incomingProjects) {
+  // 1. СИНХРОНИЗАЦИЯ ПРОЕКТОВ (как и раньше, маппим ID по токенам)
+    for (var projItem in incomingProjects) {
           Map<String, dynamic> projectMap = Map<String, dynamic>.from(projItem);
           int oldProjectId = projectMap['id'] as int;
           String projectToken = projectMap['project_token'] as String;
           String projectName = projectMap['name'] ?? 'Проект';
+          
+          // Безопасно парсим флаг удаления проекта из пришедшего JSON
+          int incomingIsDeleted = int.tryParse(projectMap['is_deleted'].toString()) ?? 0;
 
-          // Ищем, есть ли уже этот проект по токену
           final List<Map<String, dynamic>> existingSync = await txn.query(
             'sync_tasks',
             where: 'sync_token = ?',
@@ -57,53 +72,87 @@ Map<String, dynamic> importPayload = jsonDecode(cleanContent);
           int targetProjectId;
 
           if (existingSync.isNotEmpty) {
-            // Проект уже существует, обновляем его
+            // Проект уже существует на устройстве
             targetProjectId = existingSync.first['project_id'] as int;
+            
+            // ИСПРАВЛЕНИЕ: Передаем в UPDATE пришедший статус is_deleted и оригинальный update_at
             await txn.update(
               'projects',
-              {'name': projectName, 'update_at': DateTime.now().toIso8601String()},
+              {
+                'name': projectName, 
+                'is_deleted': incomingIsDeleted, // Мягко удаляем или восстанавливаем проект
+                'update_at': projectMap['update_at'] ?? DateTime.now().toIso8601String()
+              },
               where: 'id = ?',
               whereArgs: [targetProjectId],
             );
-            // Чистим его старые задачи перед записью новых
-            await txn.delete('tasks', where: 'project_id = ?', whereArgs: [targetProjectId]);
+            
+            // Чистим его старые задачи перед записью новых (если проект живой)
+            if (incomingIsDeleted == 0) {
+              await txn.delete('tasks', where: 'project_id = ?', whereArgs: [targetProjectId]);
+            }
           } else {
             // Проекта нет, создаем с нуля
             targetProjectId = await txn.insert('projects', {
               'name': projectName,
+              'is_deleted': incomingIsDeleted, // Пишем актуальный статус для нового проекта
               'created_at': projectMap['created_at'] ?? DateTime.now().toIso8601String(),
-              'update_at': DateTime.now().toIso8601String(),
+              'update_at': projectMap['update_at'] ?? DateTime.now().toIso8601String(),
             });
 
-            // Фиксируем связь токена
             await txn.insert('sync_tasks', {
               'project_id': targetProjectId,
               'sync_token': projectToken,
             });
           }
 
-          // Запоминаем, какой старый ID превратился в какой новый локальный ID
           projectIdMapping[oldProjectId] = targetProjectId;
         }
 
-        // 2. СИНХРОНИЗИРУЕМ ВСЕ ЗАДАЧИ
-        for (var taskItem in incomingTasks) {
-          Map<String, dynamic> taskMap = Map<String, dynamic>.from(taskItem);
-          int oldProjectIDForTask = taskMap['project_id'] as int;
+  // 2. УМНОЕ СЛИЯНИЕ ЗАДАЧ ПО ВРЕМЕНИ (БЕЗ УДАЛЕНИЯ ТАБЛИЦЫ)
+  for (var taskItem in incomingTasks) {
+    Map<String, dynamic> taskMap = Map<String, dynamic>.from(taskItem);
+    int oldProjectIDForTask = taskMap['project_id'] as int;
+    String taskToken = taskMap['task_token'] as String;
 
-          // Проверяем, пришел ли вместе с базой проект для этой задачи
-          if (projectIdMapping.containsKey(oldProjectIDForTask)) {
-            taskMap.remove('id'); // Стираем глобальный ID задачи
-            taskMap['project_id'] = projectIdMapping[oldProjectIDForTask]; // Ставим правильный локальный ID проекта
+    if (projectIdMapping.containsKey(oldProjectIDForTask)) {
+      taskMap['project_id'] = projectIdMapping[oldProjectIDForTask];
+      final int targetProjectId = taskMap['project_id'];
 
-            await txn.insert(
-              'tasks',
-              taskMap,
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
+      // Ищем задачу локально по её постоянному уникальному токену
+      final List<Map<String, dynamic>> localTaskRecord = await txn.query(
+        'tasks',
+        where: 'task_token = ? AND project_id = ?',
+        whereArgs: [taskToken, targetProjectId],
+      );
+
+      if (localTaskRecord.isEmpty) {
+        // Задачи еще нет на этом устройстве — добавляем её (вместе со статусом удаления, если она удалена на сервере)
+        taskMap.remove('id'); 
+        await txn.insert('tasks', taskMap);
+      } else {
+        // Задача есть на обоих девайсах — сравниваем таймстампы update_at
+        DateTime localUpdate = DateTime.parse(localTaskRecord.first['update_at'] as String);
+        DateTime incomingUpdate = DateTime.parse(taskMap['update_at'] as String);
+
+        if (incomingUpdate.isAfter(localUpdate)) {
+          // Пришедшие данные свежее — обновляем локальную строку (включая флаг is_deleted)
+          int localTaskId = localTaskRecord.first['id'] as int;
+          taskMap.remove('id'); 
+          
+          await txn.update(
+            'tasks',
+            taskMap,
+            where: 'id = ?',
+            whereArgs: [localTaskId],
+          );
         }
-      });
+        // Если локальная дата изменения свежее — игнорируем входящую запись, оставляя локальную версию
+      }
+    }
+  }
+});
+
 
       onLog("Полная синхронизация базы завершена успешно!");
       return true;
@@ -111,12 +160,12 @@ Map<String, dynamic> importPayload = jsonDecode(cleanContent);
     } catch (e) {
       onLog("Ошибка полной синхронизации: $e");
       return false;
-    } child: {
+    } finally {
       client.close();
     }
   }
 
-   // --- НОВЫЙ УНИВЕРСАЛЬНЫЙ МЕТОД ДЛЯ ОТПРАВКИ (POST) ---
+  // --- МЕТОД ДЛЯ ОТПРАВКИ (POST) ---
   Future<bool> sendDataToRemoteNode(String ipAddress, Function(String log) onLog) async {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 5);
@@ -125,9 +174,8 @@ Map<String, dynamic> importPayload = jsonDecode(cleanContent);
       onLog("Подготовка данных для отправки...");
       final dbClient = await db.database;
 
-      // 1. Собираем все проекты и задачи из локальной БД
-      final allProjects = await db.readAllProjects();
-      final allTasks = await db.readAllTasks();
+      final allProjects = await db.readAllProjectsWithDelete();
+      final allTasks = await db.readAllTasksWithDelete();
       List<Map<String, dynamic>> projectsWithTokens = [];
       
       for (var project in allProjects) {
@@ -157,20 +205,22 @@ Map<String, dynamic> importPayload = jsonDecode(cleanContent);
         "tasks": allTasks,
       };
 
-      // 2. Формируем чистый URL для POST запроса к PHP
-      String cleanUrl = ipAddress.replaceAll('http://', '').trim();
-      if (!cleanUrl.contains('.php') && !cleanUrl.contains(':')) {
-        cleanUrl = "$cleanUrl:8080/sync"; // Если это не PHP, шлем на стандартный Dart-сервер
+      final cleanUrl = ipAddress.replaceAll('http://', '').trim();
+      
+      // Точно такой же умный разбор URL для POST запроса
+      Uri targetUri;
+      if (cleanUrl.contains('/') || cleanUrl.contains('.php')) {
+        targetUri = Uri.parse('http://$cleanUrl');
+      } else {
+        targetUri = Uri.parse('http://$cleanUrl/sync');
       }
 
-      onLog("Отправка данных на $cleanUrl...");
-      final request = await client.postUrl(Uri.parse('http://$cleanUrl'));
+      onLog("Отправка данных на $targetUri...");
+      final request = await client.postUrl(targetUri);
       
-      // Настраиваем заголовки
       request.headers.contentType = ContentType.json;
-      
-      // Пишем тело запроса и закрываем отправку
       request.write(jsonEncode(payload));
+      
       final response = await request.close();
 
       if (response.statusCode == HttpStatus.ok) {
@@ -188,4 +238,3 @@ Map<String, dynamic> importPayload = jsonDecode(cleanContent);
     }
   }
 }
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:task_minimal/ui/sync_settings_screen.dart';
 
 class BaseProjectTile extends StatelessWidget {
   final int projectId;
@@ -195,6 +196,10 @@ class BaseProjectTile extends StatelessWidget {
                         onExport(projectId);
                         break;
                       case 'sync':
+                      Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SyncSettingsScreen()),
+                );
                         break;
                     }
                   },

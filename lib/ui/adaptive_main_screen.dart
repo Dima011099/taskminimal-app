@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:task_minimal/controllers/task_controller.dart';
 import 'package:task_minimal/models/task.dart';
 import 'package:task_minimal/ui/project_screen.dart';
+import 'package:task_minimal/ui/sync_settings_screen.dart';
 import 'package:task_minimal/ui/widgets/empty_task_widget.dart';
 import 'package:task_minimal/ui/widgets/minimal_desktop_side_panel.dart';
 import 'package:task_minimal/ui/widgets/minimal_tab_bar.dart';
@@ -292,7 +293,12 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                           MinimalDesktopSidePanel(
                             onProfilePressed: () => print("Профиль нажат"),
                             onFolderPressed: () => print("Папка нажата"),
-                            onSyncPressed: () => print("Синхронизация"),
+                            onSyncPressed: () => 
+       Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SyncSettingsScreen()),
+                ).then((value) { if (value == true) controller.loadProjects();})
+                            ,
                             onExportPressed: () => controller.importAsNewProject(context),
                             onAddProjectPressed: () => _addProject(), // Ваша функция добавления проекта
                           ),
@@ -341,7 +347,10 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
           ? MinimalTabBar(
               onProfilePressed: () => print("Профиль нажат"),
               onFolderPressed: () => print("Папка нажата"),
-              onSyncPressed: () => print("Синхронизация"),
+              onSyncPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SyncSettingsScreen()),
+                ).then((value) { if (value == true) controller.loadProjects();}),
               onExportPressed: () => controller.importAsNewProject(context),
               onAddPressed: () => _addProject(),
             )

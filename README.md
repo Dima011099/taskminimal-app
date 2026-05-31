@@ -79,6 +79,19 @@ This allows:
 
 ---
 
+
+# Minimalist Task Manager
+
+<p align="center">
+  <img src="docs/dc.webp" alt="Minimalist Task Manager Desktop App UI — Cross-platform Flutter Application by dima011099" title="Desktop Interface — Task Management Application" height="350">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/mb.webp" alt="Minimalist Task Tracker Mobile App UI — Adaptive Flutter UX by dima011099" title="Mobile Interface — Task Management Application" height="350">
+</p>
+
+---
+
+
+
 ## Getting Started
 
 ```bash

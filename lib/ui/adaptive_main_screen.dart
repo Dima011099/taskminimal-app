@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:task_minimal/controllers/task_controller.dart';
 import 'package:task_minimal/models/task.dart';
+import 'package:task_minimal/ui/analytics_screen.dart';
+import 'package:task_minimal/ui/profile_screen.dart';
 import 'package:task_minimal/ui/project_screen.dart';
 import 'package:task_minimal/ui/sync_settings_screen.dart';
 import 'package:task_minimal/ui/widgets/empty_task_widget.dart';
@@ -291,15 +293,21 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                           // ====== ВСТАВЛЯЕМ СЮДА ПАНЕЛЬ ДЛЯ ПК ======
                           // Она зафиксирована строго под списком и имеет ширину 300px
                           MinimalDesktopSidePanel(
-                            onProfilePressed: () => print("Профиль нажат"),
-                            onFolderPressed: () => print("Папка нажата"),
+                            onProfilePressed: () =>  Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileScreen()),
+                ),
+                            onFolderPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AnalyticsScreen()),
+                ),
                             onSyncPressed: () => 
        Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SyncSettingsScreen()),
                 ).then((value) { if (value == true) controller.loadProjects();})
                             ,
-                            onExportPressed: () => controller.importAsNewProject(context),
+                            onImportPressed: () => controller.importAsNewProject(context),
                             onAddProjectPressed: () => _addProject(), // Ваша функция добавления проекта
                           ),
                         ],
@@ -345,8 +353,14 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
       // Нижний таббар появляется ТОЛЬКО если это мобилка. На ПК возвращаем null.
       bottomNavigationBar: isMobile
           ? MinimalTabBar(
-              onProfilePressed: () => print("Профиль нажат"),
-              onFolderPressed: () => print("Папка нажата"),
+              onProfilePressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileScreen()),
+                ),
+              onFolderPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AnalyticsScreen()),
+                ),
               onSyncPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SyncSettingsScreen()),

@@ -1,7 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-
-import 'package:sqflite/sqflite.dart';
 import 'package:task_minimal/database_helper.dart';
 
 class LocalSyncClient {
@@ -14,15 +12,21 @@ Future<bool> syncFromWifi(String ipAddress, Function(String log) onLog) async {
     try {
       onLog("Подключение к $ipAddress...");
       
-      final cleanUrl = ipAddress.replaceAll('http://', '').trim();
+// 1. Очищаем пробелы
+      String urlString = ipAddress.trim();
       
-      Uri targetUri;
-      if (cleanUrl.contains('/') || cleanUrl.contains('.php')) {
-        targetUri = Uri.parse('http://$cleanUrl');
-      } else {
-        targetUri = Uri.parse('http://$cleanUrl/sync');
+      // 2. Если протокол не указан, добавляем http:// по умолчанию
+      if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+        urlString = 'http://$urlString';
       }
-
+      
+      // 3. Парсим базовый URI
+      Uri targetUri = Uri.parse(urlString);
+      
+      // 4. Если в пути нет конкретного эндпоинта, добавляем /sync
+      if (targetUri.path.isEmpty || targetUri.path == '/') {
+        targetUri = targetUri.replace(path: '/sync');
+      }
       final request = await client.getUrl(targetUri);
       
       request.headers.add(HttpHeaders.cacheControlHeader, "no-cache, no-store, must-revalidate");

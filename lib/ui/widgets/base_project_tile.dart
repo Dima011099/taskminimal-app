@@ -189,13 +189,13 @@ class BaseProjectTile extends StatelessWidget {
       );
 
                         break;
-                      case 'delete':
+                      case 'Удалить':
                         onDelete?.call();
                         break;
-                      case 'export':
+                      case 'Экспорт':
                         onExport(projectId);
                         break;
-                      case 'sync':
+                      case 'Подзадачи':
                       Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SyncSettingsScreen()),

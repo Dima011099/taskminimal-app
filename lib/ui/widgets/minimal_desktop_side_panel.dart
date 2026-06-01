@@ -4,7 +4,7 @@ class MinimalDesktopSidePanel extends StatelessWidget {
   final VoidCallback onProfilePressed;
   final VoidCallback onFolderPressed;
   final VoidCallback onSyncPressed;
-  final VoidCallback onExportPressed;
+  final VoidCallback onImportPressed;
   final VoidCallback onAddProjectPressed;
 
   const MinimalDesktopSidePanel({
@@ -12,7 +12,7 @@ class MinimalDesktopSidePanel extends StatelessWidget {
     required this.onProfilePressed,
     required this.onFolderPressed,
     required this.onSyncPressed,
-    required this.onExportPressed,
+    required this.onImportPressed,
     required this.onAddProjectPressed,
   });
 
@@ -75,7 +75,7 @@ class MinimalDesktopSidePanel extends StatelessWidget {
               IconButton(
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                icon: const Icon(Icons.folder_open_rounded, color: Color(0xFF64748B), size: 25),
+                icon: const Icon(Icons.analytics_outlined, color: Color(0xFF64748B), size: 25),
                 onPressed: onFolderPressed,
               ),
               IconButton(
@@ -87,8 +87,8 @@ class MinimalDesktopSidePanel extends StatelessWidget {
               IconButton(
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                icon: const Icon(Icons.vertical_align_top_rounded, color: Color(0xFF64748B), size: 25),
-                onPressed: onExportPressed,
+                icon: const Icon(Icons.vertical_align_bottom_rounded, color: Color(0xFF64748B), size: 25),
+                onPressed: onImportPressed,
               ),
             ],
           ),

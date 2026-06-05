@@ -73,8 +73,10 @@ if(!isMobileLayout(context)) Container(
       Expanded(
         child:
     DragTarget<int>(
-      onAccept: (id) => onMove(id, status),
-      builder: (_, candidate, __) {
+      onAcceptWithDetails: (details) {
+        onMove(details.data, status);
+      },
+      builder: (_, candidate, _) {
         return Container(
           margin: (isMobileLayout(context)) ? EdgeInsets.all(0) : EdgeInsets.all(16),
           decoration: BoxDecoration(

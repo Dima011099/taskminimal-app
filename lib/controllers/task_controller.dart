@@ -1,31 +1,28 @@
-import 'dart:typed_data';
-import 'package:uuid/uuid.dart';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:task_minimal/controllers/ProjectFileService.dart';
 
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../database_helper.dart';
-import 'dart:convert';
-import 'package:file_picker/file_picker.dart';
-
-
-import 'dart:io';
 
 class TaskController extends ChangeNotifier {
   final DatabaseHelper db;
+   final ProjectFileService _fileService;
+
   List<Task> _tasks = [];
-
   List<Project> _projects = [];
-
   List<Task> get tasks => _tasks;
-
   List<Project> get projects => _projects;
 
-  TaskController(this.db);
+  TaskController(this.db, this._fileService);
 
   int? _projectID;
 
   set projectID(int value) => _projectID = value;
-  get projectID => _projectID;
+  int? get projectID => _projectID;
 
   Future<void> load() async {
     //final data = await db.readAllTasks();
@@ -39,8 +36,6 @@ class TaskController extends ChangeNotifier {
     _projects = data.map(Project.fromMap).toList();
     notifyListeners();
   }
-
-
 
   List<Task> byStatus(TaskStatus status) =>
       _tasks.where((t) => t.status == status).toList();
@@ -60,30 +55,23 @@ class TaskController extends ChangeNotifier {
     await loadProjects();
   }
 
-/*
-  Future<void> exportJson(int id) async{
-      final data = await db.readAllTasksWhereProjectID(id);
-      String jsonString = jsonEncode(data);
-
-        // Превращаем строку в байты
-  Uint8List bytes = utf8.encode(jsonString);
-
-  // Вызываем диалог сохранения файла
-  String? outputFile = await FilePicker.platform.saveFile(
-    dialogTitle: 'Выберите место для сохранения экспорта',
-    fileName: 'project_export_$id.json',
-    type: FileType.custom,
-    allowedExtensions: ['json'],
-    bytes: bytes, // Некоторые платформы (Web/Desktop) позволяют передать байты напрямую
-  );
-
-  if (outputFile != null) {
-    print('Файл успешно сохранен: $outputFile');
+  Future<void> exportProject(int id) async {
+    await _fileService.exportProject(id);
   }
-  }*/
+
+  /// Возвращает имя импортированного проекта или null при отмене/ошибке
+   /*
+  Future<String?> importProject() async {
+    final projectName = await _fileService.importProject();
+    if (projectName != null) {
+      await loadProjects();
+    }
+    return projectName;
+  }
+  */
 
   
-
+/*
 Future<void> exportJson(int id) async {
   final projectData = await db.readProjectWhereID(id); 
   if (projectData == null) return;
@@ -138,9 +126,9 @@ Future<void> exportJson(int id) async {
     await File(outputFile).writeAsBytes(bytes);
   }
 }
+*/
 
-
-Future<void> importAsNewProject(BuildContext context) async {
+Future<void> importProject(BuildContext context) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
     allowedExtensions: ['json'],
@@ -235,46 +223,6 @@ Future<void> importAsNewProject(BuildContext context) async {
 }
 
 
-/*
-  Future<void> importAsNewProject(String projectName) async {
-  // 1. Выбираем файл
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['json'],
-  );
-
-  if (result == null || result.files.single.path == null) return;
-
-  try {
-    // 2. Читаем и парсим файл
-    File file = File(result.files.single.path!);
-    String content = await file.readAsString();
-    List<dynamic> tasksData = jsonDecode(content);
-
-    // 3. СОЗДАЕМ НОВЫЙ ПРОЕКТ в базе
-    // Метод должен возвращать ID созданной записи (autoincrement)
-    int newProjectId = await db.createProject(projectName);
-
-    // 4. ПРИВЯЗЫВАЕМ ЗАДАЧИ к новому ID
-    for (var item in tasksData) {
-      Map<String, dynamic> taskMap = Map<String, dynamic>.from(item);
-      
-      // Удаляем старые ID, чтобы не было конфликтов
-      taskMap.remove('id'); 
-      
-      // ПОДМЕНЯЕМ project_id на новый, который только что получили
-      taskMap['project_id'] = newProjectId; 
-
-      // Сохраняем задачу
-      await db.insertTask(taskMap);
-    }
-    print("Импорт завершен. Новый проект ID: $newProjectId");
-    loadProjects(); // Обновляем UI
-    
-  } catch (e) {
-    print("Ошибка импорта: $e");
-  }
-}*/
 
 
   Future<void> addProject(String name) async {
@@ -288,6 +236,7 @@ Future<void> importAsNewProject(BuildContext context) async {
   }
 
   Future<void> deleteProject(int id) async {
+    debugPrint("=== ПОПЫТКА ЭКСПОРТА ПРОЕКТА С ID: $id ===");
     await db.deleteProject(id);
     await loadProjects();
   }

@@ -177,7 +177,7 @@ class ProfileScreen extends StatelessWidget {
           // ====== КНОПКА ВЫХОДА ======
           GestureDetector(
             onTap: () {
-              print('Выход из аккаунта');
+              debugPrint('Выход из аккаунта');
             },
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:task_minimal/net/local_sync_client.dart';
 
+
 class WifiSyncClientScreen extends StatefulWidget {
   const WifiSyncClientScreen({super.key});
 
@@ -91,7 +92,7 @@ class _WifiSyncClientScreenState extends State<WifiSyncClientScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'IP-адрес сервера:',
-                  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 14, color: const Color(0xFF191C21).withOpacity(0.6)),
+                  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500, fontSize: 14, color: const Color(0xFF191C21).withValues(alpha:0.6)),
                 ),
               ),
               const SizedBox(height: 10),
@@ -123,7 +124,7 @@ class _WifiSyncClientScreenState extends State<WifiSyncClientScreen> {
                 width: 90,
                 height: 90,
                 decoration: BoxDecoration(
-                  color: _isLoading ? const Color(0xFF1E68F6).withOpacity(0.08) : const Color(0xFF909AAB).withOpacity(0.08),
+                  color: _isLoading ? const Color(0xFF1E68F6).withValues(alpha:0.08) : const Color(0xFF909AAB).withValues(alpha:  0.08),
                   shape: BoxShape.circle,
                 ),
                 child: _isLoading

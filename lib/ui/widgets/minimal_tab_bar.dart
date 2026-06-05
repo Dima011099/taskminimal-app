@@ -48,7 +48,7 @@ class MinimalTabBar extends StatelessWidget {
                 onPressed: onProfilePressed,
               ),
               IconButton(
-                icon: const Icon(Icons.folder_open_rounded, color: Color(0xFF64748B), size: 25),
+                icon: const Icon(Icons.analytics_outlined, color: Color(0xFF64748B), size: 25),
                 onPressed: onFolderPressed,
               ),
               

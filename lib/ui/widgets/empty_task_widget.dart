@@ -5,7 +5,9 @@ class EmptyTasksWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    //final theme = Theme.of(context);
+//// Пример использования переменной ниже в методе build:
+//color: theme.colorScheme.primary.withValues(alpha: 0.5),
 
     return Center(
       child: Padding(
@@ -104,7 +106,7 @@ class EmptyTasksWidget extends StatelessWidget {
         fontWeight: FontWeight.w400,
         fontSize: 13,
         letterSpacing: 0.1,
-        color: const Color(0xFF1E68F6).withOpacity(0.8), // Приглушенный синий (как "In Progress")
+        color: const Color(0xFF1E68F6).withValues(alpha:0.8), // Приглушенный синий (как "In Progress")
       ),
     ),
 

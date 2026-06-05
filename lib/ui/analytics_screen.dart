@@ -27,7 +27,7 @@ class AnalyticsScreen extends StatelessWidget {
                   color: Color(0xFF111318), 
                   size: 18, // Компактная b2b стрелочка
                 ),
-                const SizedBox(width: 10), // Зазор до текста
+               SizedBox(width: 10), // Зазор до текста
                 Text(
                   'Аналитика',
                   style: TextStyle(

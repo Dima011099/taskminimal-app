@@ -16,7 +16,8 @@ class ProjectList extends StatelessWidget {
   final TaskController controller;
 
 
-  ProjectList({
+  const ProjectList({
+    super.key,
     required this.onProjectSelected,
     required this.onProjectDeleted,
     required this.controller,
@@ -36,11 +37,13 @@ class ProjectList extends StatelessWidget {
           {
             onProjectDeleted(controller.projects[index].id); 
             controller.deleteProject(controller.projects[index].id);
+  
           },
         onUpdate: onProjectUpdate,
-        onExport: onExport,
+        onExport: onExport,//onExport,
         projectId: controller.projects[index].id,
         ),
+
     );
   }
 }

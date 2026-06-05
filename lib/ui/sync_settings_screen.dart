@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:task_minimal/database_helper.dart';
 import 'package:task_minimal/net/local_sync_client.dart';
 import 'dart:io';
 
@@ -53,7 +52,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       
       // ИСПРАВЛЕНО: Теперь запускаем без ID, сервер сам заберет всю БД
       await _syncServer.startServer((log) {
-        print(log);
+        debugPrint(log);
       });
     }
   }
@@ -89,7 +88,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     );
 
     // 1. Сначала строго скачиваем чужие изменения (GET)
-    bool pullSuccess = await _syncClient.syncFromWifi(ip, (log) => print(log));
+    bool pullSuccess = await _syncClient.syncFromWifi(ip, (log) => debugPrint(log));
     
     if (!pullSuccess) {
       if (mounted) {
@@ -104,7 +103,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     await Future.delayed(const Duration(milliseconds: 300));
 
     // 2. Только теперь пушим объединенную локальную базу обратно на сервер (POST)
-    bool pushSuccess = await _syncClient.sendDataToRemoteNode(ip, (log) => print(log));
+    bool pushSuccess = await _syncClient.sendDataToRemoteNode(ip, (log) => debugPrint(log));
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -295,7 +294,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
           fontWeight: FontWeight.w700,
           fontSize: 11,
           letterSpacing: 0.8,
-          color: const Color(0xFF191C21).withOpacity(0.4),
+          color: const Color(0xFF191C21).withValues(alpha:0.4),
         ),
       ),
     );
@@ -325,7 +324,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                 children: [
                   Text(title, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF007AFF))),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, fontSize: 12, color: const Color(0xFF191C21).withOpacity(0.4))),
+                  Text(subtitle, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, fontSize: 12, color: const Color(0xFF191C21).withValues(alpha:0.4))),
                 ],
               ),
             ),
@@ -355,7 +354,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
               children: [
                 Text(title, style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF191C21))),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, fontSize: 12, color: const Color(0xFF191C21).withOpacity(0.4))),
+                Text(subtitle, style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, fontSize: 12, color: const Color(0xFF191C21).withValues(alpha: 0.4))),
               ],
             ),
           ),

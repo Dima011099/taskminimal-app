@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:task_minimal/ui/task_column.dart';
 import '../controllers/task_controller.dart';
-import '../database_helper.dart';
 import '../models/task.dart';
 
 class ProjectScreen extends StatefulWidget {
@@ -25,7 +25,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
   @override
   void initState() {
     super.initState();
-    controller = TaskController(DatabaseHelper.instance)
+    controller = context.read<TaskController>()//TaskController(DatabaseHelper.instance, ProjectFileService.)
       ..projectID = widget.projectID
       ..load();
   }
@@ -43,7 +43,7 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: controller,
-      builder: (_, __) {
+      builder: (_, _) {
         return isMobile ? _mobile() : _desktop();
       },
     );
@@ -286,7 +286,7 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2563EB).withOpacity(0.2), // Мягкая неоновая тень fabShadow
+            color: const Color(0xFF2563EB).withValues(alpha: 0.2), // Мягкая неоновая тень fabShadow
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -302,7 +302,7 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
           // Тонкий вертикальный разделитель
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            child: Container(width: 0.75, color: Colors.white.withOpacity(0.3)),
+            child: Container(width: 0.75, color: Colors.white.withValues(alpha: 0.3)),
           ),
           
           // 2. Иконка плюс и текст
@@ -333,7 +333,7 @@ void didUpdateWidget(covariant ProjectScreen oldWidget) {
           // Второй вертикальный разделитель
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            child: Container(width: 0.75, color: Colors.white.withOpacity(0.3)),
+            child: Container(width: 0.75, color: Colors.white.withValues(alpha:  0.3)),
           ),
           
           // 4. Окошко хоткея 'N'

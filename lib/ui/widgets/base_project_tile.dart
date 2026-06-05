@@ -24,7 +24,7 @@ class BaseProjectTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    //final theme = Theme.of(context);
 
   final String firstLetter = title.isNotEmpty ? title[0].toUpperCase() : 'P';
 
@@ -189,13 +189,13 @@ class BaseProjectTile extends StatelessWidget {
       );
 
                         break;
-                      case 'Удалить':
+                      case 'delete':
                         onDelete?.call();
                         break;
-                      case 'Экспорт':
+                      case 'export':
                         onExport(projectId);
                         break;
-                      case 'Подзадачи':
+                      case 'sync':
                       Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SyncSettingsScreen()),
@@ -204,10 +204,10 @@ class BaseProjectTile extends StatelessWidget {
                     }
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(value: 'edit', child: Text('Edit')),
-                    const PopupMenuItem<String>(value: 'delete', child: Text('Delete')),
-                    const PopupMenuItem<String>(value: 'sync', child: Text('Sync')),
-                    const PopupMenuItem<String>(value: 'export', child: Text('Export')),
+                    const PopupMenuItem<String>(value: 'edit', child: Text('Редактировать')),
+                    const PopupMenuItem<String>(value: 'delete', child: Text('Удалить')),
+                    const PopupMenuItem<String>(value: 'sync', child: Text('Синхронизировать')),
+                    const PopupMenuItem<String>(value: 'export', child: Text('Экспортировать')),
                   ],
                 ),
               ],

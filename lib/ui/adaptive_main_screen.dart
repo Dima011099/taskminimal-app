@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:task_minimal/controllers/task_controller.dart';
 import 'package:task_minimal/models/task.dart';
 import 'package:task_minimal/ui/analytics_screen.dart';
@@ -9,8 +10,6 @@ import 'package:task_minimal/ui/widgets/empty_task_widget.dart';
 import 'package:task_minimal/ui/widgets/minimal_desktop_side_panel.dart';
 import 'package:task_minimal/ui/widgets/minimal_tab_bar.dart';
 import 'package:task_minimal/ui/widgets/project_list.dart';
-
-import '../database_helper.dart';
 
 class AdaptiveMainScreen extends StatefulWidget {
   const AdaptiveMainScreen({super.key});
@@ -24,167 +23,16 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
 
    final TextEditingController input = TextEditingController();
 
-  late final TaskController controller;
+  late TaskController controller;
 
   bool get isMobile => MediaQuery.of(context).size.width < 900;
 
     @override
   void initState() {
     super.initState();
-    controller = TaskController(DatabaseHelper.instance)..loadProjects();
+    controller = context.read<TaskController>();//TaskController(DatabaseHelper.instance)..loadProjects();
+    controller.loadProjects();
   }
-/*
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 72,
-        leadingWidth: 72,
-        actionsPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        title:       Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12.0), // Отступ 24px строго по вашей сетке
-    child: Row(
-      children: [
-        // ====== ТОТ САМЫЙ МИНИ-ЛОГОТИП ======
-        SizedBox(
-          width: 30,
-          height: 26,
-          child: Stack(
-            children: [
-              // Первый кубик (slateBase — антрацит)
-              Positioned(
-                left: 0,
-                top: 0,
-                child: Container(
-                  width: 13,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F141C),
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-              ),
-              // Второй кубик (brandBlue — синий)
-              Positioned(
-                left: 16,
-                top: 0,
-                child: Container(
-                  width: 13,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB),
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-              ),
-              // Третий кубик (вертикальный антрацит)
-              Positioned(
-                left: 12,
-                top: 9,
-                child: Container(
-                  width: 5,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F141C),
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 6), // Идеальный отступ между логотипом и текстом (6px из SVG)
-        
-        // ====== ОБНОВЛЕННЫЙ ТЕКСТ ======
-        const Text(
-          'Minimal',
-          style: TextStyle(
-            fontFamily: '.SF Pro Text', // Системный шрифт Apple
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0F141C), // Фирменный глубокий антрацит
-            letterSpacing: -0.5, // Отрицательный трекинг из вашей дизайн-системы
-          ),
-        ),
-      ],
-    ),
-  ),
-        backgroundColor: Colors.white,
-         actions: [
-   
-
-   IconButton(
-    icon: const Icon(Icons.settings),
-    onPressed: () {
-    },
-  ),
-],
-      
-        ),
-      backgroundColor: Colors.white,
-      body: AnimatedBuilder(
-        animation: controller,
-        builder: (context, constraints) {
-          if (!isMobile) {
-            // ДЕСКТОП: 2 или 3 колонки
-            return Row(
-              children: [
-                SizedBox(
-                  width: 300,
-                  child: ProjectList(onProjectSelected: (p) => setState(() => _selectedProject = p), controller: controller, 
-                  onProjectDeleted: (deletedId) {
-                    if (_selectedProject?.id == deletedId) {
-                      setState(() => _selectedProject = null);
-                    }
-                  },
-                  onProjectUpdate: controller.updateProject,
-                  onExport: controller.exportJson,               
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: _selectedProject != null
-                      ? ProjectScreen(projectID: _selectedProject!.id,) //TaskView(project: _selectedProject!)
-                      : const Center(child: EmptyTasksWidget()),
-                ),
-              ],
-            );
-          } else {
-            // МОБИЛЬНЫЕ: Список с переходом
-            return ProjectList(controller: controller,
-            onProjectDeleted:  (deletedId) {
-                    if (_selectedProject?.id == deletedId) {
-                      setState(() => _selectedProject = null);
-                    }
-                  },                
-              onProjectSelected: (p) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => 
-                  ProjectScreen(projectID: p.id,)
-                  )  
-                );
-              },
-              onProjectUpdate: controller.updateProject,
-              onExport: controller.exportJson,
-            );
-          }
-        },
-      ),
-    /*    bottomNavigationBar: new MinimalTabBar(
-    onProfilePressed: () => print("Профиль нажат"),
-    onFolderPressed: () => print("Папка нажата"),
-    onSyncPressed: () => print("Синхронизация"),
-    onExportPressed: () => controller.importAsNewProject('Import Project'),
-    onAddPressed: () => _addProject(),
-  ),*/
-  bottomNavigationBar: new MinimalDesktopSidePanel(
-    onProfilePressed:  () => print("Профиль нажат"), 
-    onFolderPressed: () => print("Профиль нажат"), 
-    onSyncPressed: () => print("Профиль нажат"), onExportPressed: () => print("Профиль нажат"), 
-    onAddProjectPressed: () => print("Профиль нажат"))
-    );
-  }*/
 
     @override
   Widget build(BuildContext context) {
@@ -263,7 +111,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
       ),
       body: AnimatedBuilder(
         animation: controller,
-        builder: (context, constraints) {
+        builder: (context, _ /*constraints*/){
           if (!isMobile) {
             // =========================================================
             // ДЕСКТОП: Панель проектов + новая панель ПК жестко внизу колонки
@@ -287,7 +135,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                                 }
                               },
                               onProjectUpdate: controller.updateProject,
-                              onExport: controller.exportJson,
+                              onExport: controller.exportProject,
                             ),
                           ),
                           // ====== ВСТАВЛЯЕМ СЮДА ПАНЕЛЬ ДЛЯ ПК ======
@@ -307,7 +155,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                   MaterialPageRoute(builder: (context) => SyncSettingsScreen()),
                 ).then((value) { if (value == true) controller.loadProjects();})
                             ,
-                            onImportPressed: () => controller.importAsNewProject(context),
+                            onImportPressed: () => controller.importProject(context),
                             onAddProjectPressed: () => _addProject(), // Ваша функция добавления проекта
                           ),
                         ],
@@ -334,6 +182,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
             return ProjectList(
               controller: controller,
               onProjectDeleted: (deletedId) {
+                controller.deleteProject(deletedId);
                 if (_selectedProject?.id == deletedId) {
                   setState(() => _selectedProject = null);
                 }
@@ -345,7 +194,9 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                 );
               },
               onProjectUpdate: controller.updateProject,
-              onExport: controller.exportJson,
+              onExport: (id) {
+                controller.exportProject(id);
+              },
             );
           }
         },
@@ -365,7 +216,7 @@ class _AdaptiveMainScreenState extends State<AdaptiveMainScreen> {
                   context,
                   MaterialPageRoute(builder: (context) => SyncSettingsScreen()),
                 ).then((value) { if (value == true) controller.loadProjects();}),
-              onExportPressed: () => controller.importAsNewProject(context),
+              onExportPressed: () =>  controller.importProject(context),
               onAddPressed: () => _addProject(),
             )
           : null,

@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:uuid/uuid.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -277,4 +278,107 @@ Future<int> updateProjectTitle(int id, String title) async {
     conflictAlgorithm: ConflictAlgorithm.replace,
   );
 }
+
+
+
+/// Получает существующий токен проекта или генерирует новый, если его нет
+  Future<String> getOrCreateSyncToken(int projectId) async {
+    final dbClient = await database;
+
+    final List<Map<String, dynamic>> syncRecords = await dbClient.query(
+      'sync_tasks',
+      where: 'project_id = ?',
+      whereArgs: [projectId],
+    );
+
+    if (syncRecords.isNotEmpty) {
+      return syncRecords.first['sync_token'] as String;
+    }
+
+    // Если токена нет, создаем новый UUID v4
+    final String newToken = const Uuid().v4();
+    
+    await dbClient.insert('sync_tasks', {
+      'project_id': projectId,
+      'sync_token': newToken,
+    });
+
+    return newToken;
+  }
+
+  /// Логика импорта: проверяет токен, очищает старые данные при совпадении 
+  /// или создает новый проект. Все операции выполняются в одной транзакции.
+  Future<void> importProjectData({
+    required String? token,
+    required String name,
+    required List<Map<String, dynamic>> tasks,
+  }) async {
+    final dbClient = await database;
+
+    // Одно атомарное действие: если внутри что-то упадет, изменения откатятся
+    await dbClient.transaction((txn) async {
+      int targetProjectId;
+
+      if (token != null) {
+        final List<Map<String, dynamic>> existingSync = await txn.query(
+          'sync_tasks',
+          where: 'sync_token = ?',
+          whereArgs: [token],
+        );
+
+        if (existingSync.isNotEmpty) {
+          // Сценарий 1: Проект уже импортировался ранее
+          targetProjectId = existingSync.first['project_id'] as int;
+
+          // Очищаем старые задачи
+          await txn.delete(
+            'tasks',
+            where: 'project_id = ?',
+            whereArgs: [targetProjectId],
+          );
+
+          // Обновляем имя (на случай, если оно изменилось)
+        await txn.update(
+            'projects',
+            {
+              'name': name,
+              'is_deleted': 0, // <--- ВОТ ЭТА СТРОКА ОЖИВИТ ИМПОРТ!
+              'update_at': DateTime.now().toIso8601String(),
+            }, // Замените на ваши реальные поля, если нужно
+            where: 'id = ?',
+            whereArgs: [targetProjectId],
+          );
+        } else {
+          // Сценарий 2: Токен есть, но в нашей БД такого проекта еще нет
+          targetProjectId = await _createProjectInsideTxn(txn, name);
+          
+          await txn.insert('sync_tasks', {
+            'project_id': targetProjectId,
+            'sync_token': token,
+          });
+        }
+      } else {
+        // Сценарий 3: Файл старый, токена нет — просто создаем новый проект
+        targetProjectId = await _createProjectInsideTxn(txn, name);
+      }
+
+      // Записываем новые задачи в рамках той же транзакции
+      for (var item in tasks) {
+        final taskMap = Map<String, dynamic>.from(item);
+        taskMap.remove('id'); // Удаляем старый ID, чтобы сгенерировался новый Autoincrement
+        taskMap['project_id'] = targetProjectId;
+
+        await txn.insert('tasks', taskMap);
+      }
+    });
+  }
+
+  // Вспомогательный метод для вставки проекта внутри транзакции
+  Future<int> _createProjectInsideTxn(Transaction txn, String name) async {
+    return await txn.insert('projects', {
+      'name': name,
+      'created_at': DateTime.now().toIso8601String(),
+      'update_at': DateTime.now().toIso8601String(),
+    });
+  }
 }

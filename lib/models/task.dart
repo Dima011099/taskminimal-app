@@ -1,5 +1,7 @@
+/// Represents the execution state of a specific task.
 enum TaskStatus { todo, inProgress, done }
 
+/// Data model representing an individual task within a project.
 class Task {
   final int id;
   final String title;
@@ -13,6 +15,10 @@ class Task {
     required this.priority,
   });
 
+  /// Constructs a [Task] instance from a database record map.
+  /// 
+  /// Expects 'status' to be stored as an integer index corresponding 
+  /// to the [TaskStatus] enum values.
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
       id: map['id'],
@@ -23,38 +29,21 @@ class Task {
   }
 }
 
+/// Data model representing a project container.
 class Project {
   final int id;
   final String name;
- /* final List<Task> tasks;*/
 
   Project({
     required this.id,
     required this.name, 
-   /* required this.tasks*/
   });
 
+  /// Constructs a [Project] instance from a database record map.
   factory Project.fromMap(Map<String, dynamic> map) {
     return Project(
       id: map['id'],
       name: map['name'],
-     /* tasks: (map['tasks'] as List<dynamic>?)
-            ?.map((taskMap) => Task.fromMap(taskMap as Map<String, dynamic>))
-            .toList() ?? [],*/
     );
   }
 }
-/*
-// Фейковые данные
-final List<Project> demoProjects = [
-  Project(id:1, name: 'Сайт компании', tasks:
-    [
-      Task(id: 1, title: 'Дизайн', status: TaskStatus.done, priority: 1), 
-      Task(id: 2, title: 'Верстка', status: TaskStatus.todo, priority: 2)
-    ]),
-  Project(id: 2, name: 'Мобильное приложение', tasks: 
-    [
-      Task(id: 3, title: 'API', status: TaskStatus.todo, priority: 1), 
-      Task(id: 4, title: 'Авторизация', status: TaskStatus.inProgress, priority: 2)
-    ]),
-];*/

@@ -5,16 +5,22 @@ import 'dart:io';
 
 import 'package:task_minimal/database_helper.dart';
 
+
+/// A service responsible for exporting and importing project data 
+/// via JSON files using system file pickers.
 class ProjectFileService {
   final DatabaseHelper _db;
 
   ProjectFileService(this._db);
 
+  /// Exports a project and its associated tasks into a single JSON file.
+  /// 
+  /// Generates a backup payload containing metadata, project details, 
+  /// and a synchronization token managed by [DatabaseHelper].
   Future<void> exportProject(int id) async {
     final projectData = await _db.readProjectWhereID(id);
     if (projectData == null) return;
 
-    // Вся работа с токенами уходит в DatabaseHelper
     final String projectToken = await _db.getOrCreateSyncToken(id);
     final tasksData = await _db.readAllTasksWhereProjectID(id);
 
@@ -31,6 +37,7 @@ class ProjectFileService {
 
     final bytes = utf8.encode(jsonEncode(exportPayload));
 
+    // Opens a system dialog to let the user choose the destination path.
     final outputFile = await FilePicker.platform.saveFile(
       dialogTitle: 'Выберите место для сохранения экспорта',
       fileName: 'project_export_$id.json',
@@ -44,12 +51,19 @@ class ProjectFileService {
     }
   }
 
+  /// Imports a project from a user-selected JSON file.
+  /// 
+  /// Decodes the backup payload, extracts the project metadata, 
+  /// and delegates the SQL insertion logic to [DatabaseHelper].
+  /// 
+  /// Returns the imported project's name, or `null` if the operation was canceled.
   Future<String?> importProject() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
 
+    // Early return if the file picker dialog was canceled or intercepted.
     if (result == null || result.files.single.path == null) return null;
 
     final file = File(result.files.single.path!);
@@ -60,7 +74,6 @@ class ProjectFileService {
     final Map<String, dynamic> projectData = importPayload['project'] ?? {};
     final String projectName = projectData['name'] ?? 'Импортированный проект';
 
-    // Делегируем сложную SQL-логику импорта в DatabaseHelper
     await _db.importProjectData(
       token: projectToken,
       name: projectName,

@@ -59,75 +59,6 @@ class TaskController extends ChangeNotifier {
     await _fileService.exportProject(id);
   }
 
-  /// Возвращает имя импортированного проекта или null при отмене/ошибке
-   /*
-  Future<String?> importProject() async {
-    final projectName = await _fileService.importProject();
-    if (projectName != null) {
-      await loadProjects();
-    }
-    return projectName;
-  }
-  */
-
-  
-/*
-Future<void> exportJson(int id) async {
-  final projectData = await db.readProjectWhereID(id); 
-  if (projectData == null) return;
-  
-  final dbClient = await db.database;
-  
-  // 1. Проверяем или создаем sync_token для этого проекта
-  final List<Map<String, dynamic>> syncRecords = await dbClient.query(
-    'sync_tasks',
-    where: 'project_id = ?',
-    whereArgs: [id],
-  );
-  
-  String projectToken;
- if (syncRecords.isEmpty) {
-  projectToken = const Uuid().v4(); 
-  
-  await dbClient.insert('sync_tasks', {
-    'project_id': id,
-    'sync_token': projectToken,
-  });
-} else {
-  projectToken = syncRecords.first['sync_token'] as String;
-}
-  
-  final tasksData = await db.readAllTasksWhereProjectID(id);
-
-  // 2. Добавляем project_token в JSON payload
-  final Map<String, dynamic> exportPayload = {
-    "export_version": "1.0",
-    "project_token": projectToken, // Ключевой маркер против дубликатов
-    "project": {
-      "name": projectData['name'],
-      "created_at": projectData['created_at'],
-      "update_at": projectData['update_at'],
-    },
-    "tasks": tasksData,
-  };
-
-  String jsonString = jsonEncode(exportPayload);
-  Uint8List bytes = utf8.encode(jsonString);
-
-  String? outputFile = await FilePicker.platform.saveFile(
-    dialogTitle: 'Выберите место для сохранения экспорта',
-    fileName: 'project_export_$id.json',
-    type: FileType.custom,
-    allowedExtensions: ['json'],
-    bytes: bytes, 
-  );
-
-  if (outputFile != null) {
-    await File(outputFile).writeAsBytes(bytes);
-  }
-}
-*/
-
 Future<void> importProject(BuildContext context) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
@@ -221,9 +152,6 @@ Future<void> importProject(BuildContext context) async {
     }
   }
 }
-
-
-
 
   Future<void> addProject(String name) async {
     await db.createProject(name);
